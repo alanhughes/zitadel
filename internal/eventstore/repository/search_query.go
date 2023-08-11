@@ -69,6 +69,8 @@ const (
 	FieldEventData
 	//FieldCreationDate represents the creation date field
 	FieldCreationDate
+	// FieldGlobalSequence represents the global sequence field
+	FieldGlobalSequence
 
 	fieldCount
 )
@@ -132,6 +134,7 @@ func QueryFromBuilder(builder *eventstore.SearchQueryBuilder) (*SearchQuery, err
 			eventTypeFilter,
 			eventDataFilter,
 			eventSequenceGreaterFilter,
+			globalSequenceGreaterFilter,
 			eventSequenceLessFilter,
 			excludedInstanceIDFilter,
 			creationDateAfterFilter,
@@ -209,6 +212,17 @@ func eventSequenceGreaterFilter(query *eventstore.SearchQuery) *Filter {
 		sortOrder = OperationLess
 	}
 	return NewFilter(FieldSequence, query.GetEventSequenceGreater(), sortOrder)
+}
+
+func globalSequenceGreaterFilter(query *eventstore.SearchQuery) *Filter {
+	if query.GetGlobalSequenceGreater() == 0 {
+		return nil
+	}
+	sortOrder := OperationGreater
+	if query.Builder().GetDesc() {
+		sortOrder = OperationLess
+	}
+	return NewFilter(FieldGlobalSequence, query.GetGlobalSequenceGreater(), sortOrder)
 }
 
 func eventSequenceLessFilter(query *eventstore.SearchQuery) *Filter {

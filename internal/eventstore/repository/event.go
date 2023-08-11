@@ -17,6 +17,8 @@ type Event struct {
 
 	// Seq is the sequence of the event
 	Seq uint64
+	// GloablSeq is the sequence of the system
+	GlobalSeq uint64
 
 	//PreviousAggregateSequence is the sequence of the previous sequence of the aggregate (e.g. org.250989)
 	// if it's 0 then it's the first event of this aggregate
@@ -95,6 +97,11 @@ func (e *Event) Revision() uint16 {
 // Sequence implements [eventstore.Event]
 func (e *Event) Sequence() uint64 {
 	return e.Seq
+}
+
+// GlobalSequence implements [eventstore.Event]
+func (e *Event) GlobalSequence() uint64 {
+	return e.GlobalSeq
 }
 
 // CreatedAt implements [eventstore.Event]

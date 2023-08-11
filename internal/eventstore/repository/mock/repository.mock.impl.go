@@ -138,8 +138,9 @@ func (m *MockRepository) ExpectPushFailed(err error, expectedCommands []eventsto
 
 type mockEvent struct {
 	eventstore.Command
-	sequence  uint64
-	createdAt time.Time
+	sequence       uint64
+	globalSequence uint64
+	createdAt      time.Time
 }
 
 // DataAsBytes implements eventstore.Event
@@ -167,6 +168,10 @@ func (e *mockEvent) Unmarshal(ptr any) error {
 
 func (e *mockEvent) Sequence() uint64 {
 	return e.sequence
+}
+
+func (e *mockEvent) GlobalSequence() uint64 {
+	return e.globalSequence
 }
 
 func (e *mockEvent) CreatedAt() time.Time {

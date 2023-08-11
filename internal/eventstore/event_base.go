@@ -15,13 +15,14 @@ var (
 
 // BaseEvent represents the minimum metadata of an event
 type BaseEvent struct {
-	ID        string
+	ID        string    `json:"-"`
 	EventType EventType `json:"-"`
 
-	Agg *Aggregate
+	Agg *Aggregate `json:"-"`
 
-	Seq                           uint64
-	Creation                      time.Time
+	Seq                           uint64    `json:"-"`
+	GlobalSeq                     uint64    `json:"-"`
+	Creation                      time.Time `json:"-"`
 	previousAggregateSequence     uint64
 	previousAggregateTypeSequence uint64
 
@@ -54,6 +55,11 @@ func (e *BaseEvent) Type() EventType {
 // Sequence is an upcounting unique number of the event
 func (e *BaseEvent) Sequence() uint64 {
 	return e.Seq
+}
+
+// GlobalSequence is an upcounting unique number of the event
+func (e *BaseEvent) GlobalSequence() uint64 {
+	return e.GlobalSeq
 }
 
 // CreationDate is the the time, the event is inserted into the eventstore
@@ -104,6 +110,7 @@ func BaseEventFromRepo(event Event) *BaseEvent {
 		EventType: event.Type(),
 		Creation:  event.CreatedAt(),
 		Seq:       event.Sequence(),
+		GlobalSeq: event.GlobalSequence(),
 		// previousAggregateSequence:     event.PreviousAggregateSequence,
 		// previousAggregateTypeSequence: event.PreviousAggregateTypeSequence,
 		Service: "zitadel",

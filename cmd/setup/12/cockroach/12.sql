@@ -13,6 +13,10 @@ DROP INDEX IF EXISTS eventstore.events@active_instances;
 COMMIT;
 
 BEGIN;
+ALTER TABLE eventstore.events ADD COLUMN IF NOT EXISTS global_sequence SERIAL;
+COMMIT;
+
+BEGIN;
 ALTER TABLE eventstore.events ALTER PRIMARY KEY USING COLUMNS (instance_id, aggregate_type, aggregate_id, event_sequence DESC);
 COMMIT;
 

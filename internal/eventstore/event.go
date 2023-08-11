@@ -39,6 +39,9 @@ type Event interface {
 
 	// Sequence of the event in the aggregate
 	Sequence() uint64
+	// GloablSequence of the System
+	GlobalSequence() uint64
+	// CreatedAt is the creation timestamp of the event
 	CreatedAt() time.Time
 
 	// Unmarshal parses the payload and stores the result

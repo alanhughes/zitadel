@@ -308,7 +308,7 @@ func (h *Handler) generateStatements(ctx context.Context, tx *sql.Tx, currentSta
 		return []*Statement{stmt}, false, nil
 	}
 
-	events, err := h.es.Filter(ctx, h.eventQuery(currentState))
+	events, err := h.es.Filter(ctx, h.eventQuery(tx, currentState))
 	if err != nil {
 		h.log().WithError(err).Debug("filter eventstore failed")
 		return nil, false, err
@@ -339,7 +339,7 @@ func skipPreviouslyReduced(events []eventstore.Event, currentState *state) []eve
 	for i, event := range events {
 		if currentState.aggregateID == event.Aggregate().ID &&
 			currentState.aggregateType == event.Aggregate().Type &&
-			currentState.eventSequence == event.Sequence() {
+			currentState.eventSequence == event.GlobalSequence() {
 			return events[i+1:]
 		}
 	}
@@ -383,9 +383,10 @@ func (h *Handler) execute(ctx context.Context, tx *sql.Tx, currentState *state, 
 	return lastProcessedIndex, nil
 }
 
-func (h *Handler) eventQuery(currentState *state) *eventstore.SearchQueryBuilder {
+func (h *Handler) eventQuery(tx *sql.Tx, currentState *state) *eventstore.SearchQueryBuilder {
 	builder := eventstore.NewSearchQueryBuilder(eventstore.ColumnsEvent).
 		Limit(uint64(h.bulkLimit)).
+		SetTx(tx).
 		AllowTimeTravel().
 		OrderAsc().
 		InstanceID(currentState.instanceID)
@@ -396,8 +397,8 @@ func (h *Handler) eventQuery(currentState *state) *eventstore.SearchQueryBuilder
 			AggregateTypes(aggregateType).
 			EventTypes(eventTypes...)
 
-		if !currentState.eventTimestamp.IsZero() {
-			query = query.CreationDateAfter(currentState.eventTimestamp.Add(-1 * time.Microsecond))
+		if currentState.eventSequence > 0 {
+			query = query.GlobalSequenceGreater(currentState.eventSequence)
 		}
 
 		builder = query.Builder()

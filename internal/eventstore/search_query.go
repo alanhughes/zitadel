@@ -58,16 +58,17 @@ func (b *SearchQueryBuilder) GetAllowTimeTravel() bool {
 }
 
 type SearchQuery struct {
-	builder              *SearchQueryBuilder
-	aggregateTypes       []AggregateType
-	aggregateIDs         []string
-	instanceID           string
-	excludedInstanceIDs  []string
-	eventSequenceGreater uint64
-	eventSequenceLess    uint64
-	eventTypes           []EventType
-	eventData            map[string]interface{}
-	creationDateAfter    time.Time
+	builder               *SearchQueryBuilder
+	aggregateTypes        []AggregateType
+	aggregateIDs          []string
+	instanceID            string
+	excludedInstanceIDs   []string
+	eventSequenceGreater  uint64
+	globalSequenceGreater uint64
+	eventSequenceLess     uint64
+	eventTypes            []EventType
+	eventData             map[string]interface{}
+	creationDateAfter     time.Time
 }
 
 func (q SearchQuery) GetAggregateTypes() []AggregateType {
@@ -88,6 +89,10 @@ func (q SearchQuery) GetExcludedInstanceIDs() []string {
 
 func (q SearchQuery) GetEventSequenceGreater() uint64 {
 	return q.eventSequenceGreater
+}
+
+func (q SearchQuery) GetGlobalSequenceGreater() uint64 {
+	return q.globalSequenceGreater
 }
 
 func (q SearchQuery) GetEventSequenceLess() uint64 {
@@ -240,6 +245,12 @@ func (query *SearchQuery) SequenceGreater(sequence uint64) *SearchQuery {
 	return query
 }
 
+// SequenceGreater filters for events with sequence greater the requested sequence
+func (query *SearchQuery) GlobalSequenceGreater(sequence uint64) *SearchQuery {
+	query.globalSequenceGreater = sequence
+	return query
+}
+
 // SequenceLess filters for events with sequence less the requested sequence
 func (query *SearchQuery) SequenceLess(sequence uint64) *SearchQuery {
 	query.eventSequenceLess = sequence
@@ -293,6 +304,9 @@ func (query *SearchQuery) matches(event Event) bool {
 		return false
 	}
 	if query.eventSequenceGreater > 0 && event.Sequence() <= query.eventSequenceGreater {
+		return false
+	}
+	if query.globalSequenceGreater > 0 && event.GlobalSequence() <= query.globalSequenceGreater {
 		return false
 	}
 	if ok := isAggreagteTypes(event.Aggregate(), query.aggregateTypes...); len(query.aggregateTypes) > 0 && !ok {

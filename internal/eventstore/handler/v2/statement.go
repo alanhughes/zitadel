@@ -73,7 +73,7 @@ var (
 func NewStatement(event eventstore.Event, e Exec) *Statement {
 	return &Statement{
 		AggregateType: event.Aggregate().Type,
-		Sequence:      event.Sequence(),
+		Sequence:      event.GlobalSequence(),
 		AggregateID:   event.Aggregate().ID,
 		CreationDate:  event.CreatedAt(),
 		InstanceID:    event.Aggregate().InstanceID,

@@ -12,13 +12,14 @@ var (
 )
 
 type event struct {
-	aggregate *eventstore.Aggregate
-	creator   string
-	revision  uint16
-	typ       eventstore.EventType
-	createdAt time.Time
-	sequence  uint64
-	payload   Payload
+	aggregate      *eventstore.Aggregate
+	creator        string
+	revision       uint16
+	typ            eventstore.EventType
+	createdAt      time.Time
+	sequence       uint64
+	globalSequence uint64
+	payload        Payload
 }
 
 func commandToEvent(sequence *latestSequence, command eventstore.Command) (_ *event, err error) {
@@ -90,4 +91,9 @@ func (e *event) Unmarshal(ptr any) error {
 // DataAsBytes implements [eventstore.Event]
 func (e *event) DataAsBytes() []byte {
 	return e.payload
+}
+
+// GlobalSequence implements [eventstore.Event]
+func (e *event) GlobalSequence() uint64 {
+	return e.globalSequence
 }

@@ -58,7 +58,7 @@ func insertEvents(ctx context.Context, tx *sql.Tx, sequences []*latestSequence, 
 	defer rows.Close()
 
 	for i := 0; rows.Next(); i++ {
-		err = rows.Scan(&events[i].(*event).createdAt)
+		err = rows.Scan(&events[i].(*event).createdAt, &events[i].(*event).globalSequence)
 		if err != nil {
 			return nil, err
 		}

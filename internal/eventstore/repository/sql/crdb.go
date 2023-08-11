@@ -287,17 +287,18 @@ func (db *CRDB) db() *sql.DB {
 
 func (db *CRDB) orderByEventSequence(desc bool) string {
 	if desc {
-		return " ORDER BY created_at DESC, event_sequence DESC"
+		return " ORDER BY global_sequence DESC, event_sequence DESC"
 	}
 
-	return " ORDER BY created_at, event_sequence"
+	return " ORDER BY global_sequence, event_sequence"
 }
 
 func (db *CRDB) eventQuery() string {
 	return "SELECT" +
-		" created_at" +
+		" crdb_internal.approximate_timestamp(crdb_internal_mvcc_timestamp)::TIMESTAMPTZ" +
 		", event_type" +
 		", event_sequence" +
+		", global_sequence" +
 		", previous_aggregate_sequence" +
 		", previous_aggregate_type_sequence" +
 		", event_data" +
@@ -312,7 +313,7 @@ func (db *CRDB) eventQuery() string {
 }
 
 func (db *CRDB) maxSequenceQuery() string {
-	return "SELECT MAX(created_at) FROM eventstore.events"
+	return "SELECT MAX(crdb_internal.approximate_timestamp(crdb_internal_mvcc_timestamp)::TIMESTAMPTZ) FROM eventstore.events"
 }
 
 func (db *CRDB) instanceIDsQuery() string {
@@ -340,7 +341,9 @@ func (db *CRDB) columnName(col repository.Field) string {
 	case repository.FieldEventData:
 		return "event_data"
 	case repository.FieldCreationDate:
-		return "created_at"
+		return "crdb_internal.approximate_timestamp(crdb_internal_mvcc_timestamp)::TIMESTAMPTZ"
+	case repository.FieldGlobalSequence:
+		return "global_sequence"
 	default:
 		return ""
 	}

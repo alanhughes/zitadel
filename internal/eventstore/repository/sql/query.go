@@ -42,11 +42,6 @@ func query(ctx context.Context, criteria querier, searchQuery *eventstore.Search
 	if where == "" || query == "" {
 		return z_errors.ThrowInvalidArgument(nil, "SQL-rWeBw", "invalid query factory")
 	}
-	if q.Tx == nil {
-		if travel := prepareTimeTravel(ctx, criteria, q.AllowTimeTravel); travel != "" {
-			query += travel
-		}
-	}
 	query += where
 
 	if q.Columns == eventstore.ColumnsEvent {
@@ -63,9 +58,17 @@ func query(ctx context.Context, criteria querier, searchQuery *eventstore.Search
 	var contextQuerier interface {
 		QueryContext(context.Context, string, ...interface{}) (*sql.Rows, error)
 	}
-	contextQuerier = criteria.db()
 	if q.Tx != nil {
 		contextQuerier = q.Tx
+	} else {
+		tx, err := criteria.db().BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+		if err != nil {
+			return err
+		}
+		defer func() {
+			err = tx.Commit()
+		}()
+		contextQuerier = tx
 	}
 
 	rows, err := contextQuerier.QueryContext(ctx, query, values...)
@@ -152,6 +155,7 @@ func eventsScanner(scanner scan, dest interface{}) (err error) {
 		&event.CreationDate,
 		&event.Typ,
 		&event.Seq,
+		&event.GlobalSeq,
 		&previousAggregateSequence,
 		&previousAggregateTypeSequence,
 		&data,
@@ -213,7 +217,7 @@ func prepareCondition(criteria querier, filters [][]*repository.Filter) (clause 
 	// created_at <= now() must be added because clock_timestamp() could be in the future
 	// this could lead to skipped events which are not visible as of system time but have a lower
 	// created_at timestamp
-	return " WHERE (" + strings.Join(clauses, " OR ") + ") AND created_at <= now()", values
+	return " WHERE (" + strings.Join(clauses, " OR ") + ") AND clock_timestamp()-'500ms'::INTERVAL", values
 }
 
 func getCondition(cond querier, filter *repository.Filter) (condition string) {

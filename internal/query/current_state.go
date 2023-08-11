@@ -92,7 +92,7 @@ func (q *Queries) latestState(ctx context.Context, projections ...table) (_ *Lat
 	ctx, span := tracing.NewSpan(ctx)
 	defer func() { span.EndWithError(err) }()
 
-	query, scan := prepareLatestState(ctx, q.client)
+	query, scan := prepareLatestState(ctx)
 	or := make(sq.Or, len(projections))
 	for i, projection := range projections {
 		or[i] = sq.Eq{CurrentStateColProjectionName.identifier(): projection.name}
@@ -106,7 +106,14 @@ func (q *Queries) latestState(ctx context.Context, projections ...table) (_ *Lat
 		return nil, errors.ThrowInternal(err, "QUERY-5CfX9", "Errors.Query.SQLStatement")
 	}
 
-	row := q.client.QueryRowContext(ctx, stmt, args...)
+	tx, err := q.client.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return nil, errors.ThrowInternal(err, "QUERY-5CfX9", "Errors.Query.SQLStatement")
+	}
+	defer func() {
+		_ = tx.Commit()
+	}()
+	row := tx.QueryRowContext(ctx, stmt, args...)
 	return scan(row)
 }
 
@@ -228,12 +235,12 @@ func reset(ctx context.Context, tx *sql.Tx, tables []string, projectionName stri
 	return nil
 }
 
-func prepareLatestState(ctx context.Context, db prepareDatabase) (sq.SelectBuilder, func(*sql.Row) (*LatestState, error)) {
+func prepareLatestState(ctx context.Context) (sq.SelectBuilder, func(*sql.Row) (*LatestState, error)) {
 	return sq.Select(
 			CurrentStateColEventDate.identifier(),
 			CurrentStateColSequence.identifier(),
 			CurrentStateColLastUpdated.identifier()).
-			From(currentStateTable.identifier() + db.Timetravel(call.Took(ctx))).
+			From(currentStateTable.identifier()).
 			PlaceholderFormat(sq.Dollar),
 		func(row *sql.Row) (*LatestState, error) {
 			var (

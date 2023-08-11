@@ -20,6 +20,7 @@ var _ eventstore.Event = (*Event)(nil)
 type Event struct {
 	ID               string
 	Seq              uint64
+	GlobalSeq        uint64
 	CreationDate     time.Time
 	Typ              eventstore.EventType
 	PreviousSequence uint64
@@ -85,6 +86,11 @@ func (e *Event) PreviousAggregateTypeSequence() uint64 {
 // Sequence implements [eventstore.Event]
 func (e *Event) Sequence() uint64 {
 	return e.Seq
+}
+
+// GlobalSequence implements [eventstore.Event]
+func (e *Event) GlobalSequence() uint64 {
+	return e.GlobalSeq
 }
 
 // Type implements [eventstore.Event]
